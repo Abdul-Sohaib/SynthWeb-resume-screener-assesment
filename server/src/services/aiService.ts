@@ -73,7 +73,7 @@ export class AIService {
         apiKey,
         baseURL,
         defaultHeaders: {
-          'HTTP-Referer': 'http://localhost:5173',
+          'HTTP-Referer': 'https://synthweb-internal-resume-assesment.vercel.app',
           'X-Title': 'Resume Screener Assistant',
         },
       });
