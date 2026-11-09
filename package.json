@@ -1,0 +1,20 @@
+{
+  "name": "resume-screener-assistant",
+  "version": "1.0.0",
+  "description": "Internal HR Resume Screener Assistant comparing resumes against job descriptions using an LLM",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "test:server": "npm --prefix server test",
+    "build": "npm --prefix server run build && npm --prefix client run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+
