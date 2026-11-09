@@ -238,7 +238,7 @@ Retrieves full details of a saved analysis without triggering an LLM call.
 
 ## Demo & Recording
 - **Live Local Demo:** Frontend runs on `http://localhost:5173` with backend on `http://localhost:5000`.
-- **Recording/Screenshots:** MANUAL INPUT REQUIRED: Candidate to record 2-3 minute demo or capture screenshots for submission.
+- **Recording/Screenshots:** Video walkthrough or screenshots link will be provided with final email submission.
 
 ## Repository
-- **GitHub URL:** MANUAL INPUT REQUIRED: Candidate will push the repository to GitHub.
+- **GitHub URL:** [https://github.com/Abdul-Sohaib/SynthWeb-resume-screener-assesment](https://github.com/Abdul-Sohaib/SynthWeb-resume-screener-assesment)

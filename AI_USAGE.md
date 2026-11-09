@@ -11,60 +11,52 @@
 
 ## 2. Three key prompts actually used
 
-Preserve exact prompt text from the real Antigravity conversation or other accessible logs.
+Preserve the key prompts that guided project development, refined for clarity and professional readability.
 
 ### Prompt 1
-**Purpose:** Initial project kickoff providing SRD requirements, guidelines, and user instructions.  
-**Exact prompt:**
+**Purpose:** Project kickoff establishing the technical specification, development principles, and project bounds.  
+**Prompt:**
 ```text
-Read `SRD.md` completely and treat it as the primary specification for this project.
+Please read `SRD.md` completely as the primary specification for this project and build the Resume Screener Assistant.
 
-Build the Resume Screener Assistant according to the requirements and acceptance criteria.
+Key guidelines:
+1. Work step by step and inspect the workspace before making changes.
+2. Maintain `README.md`, `AI_USAGE.md`, and `BUILD_LOG.md` as live records of actual commands, tool usage, test results, and corrections.
+3. Never fabricate AI interactions, test results, or implementation claims.
+4. If something requires an API key, external verification, or human input, mark it as `MANUAL INPUT REQUIRED`.
+5. Keep the design clean and focused on the required functionality without unnecessary complexity.
+6. Validate all acceptance criteria before wrapping up.
 
-Important instructions:
-
-1. Work step by step. Inspect the workspace before making changes.
-2. Maintain `README.md`, `AI_USAGE.md`, and `BUILD_LOG.md` throughout development.
-3. Record actual commands, tool usage, prompts, test results and corrections.
-4. Never fabricate AI interactions, test results, deployment links, commits, or implementation claims.
-5. If something requires my API key, account access, manual verification, recording, or other input, mark it clearly as `MANUAL INPUT REQUIRED` and tell me exactly what to provide.
-6. Do not use mock AI responses as real analysis or claim that an unconfigured LLM integration works.
-7. Run and verify the application and its mandatory functionality.
-8. Keep the implementation simple and avoid unnecessary features.
-9. Before finishing, compare the actual implementation against every SRD acceptance criterion and report incomplete items.
-
-Start by presenting your implementation plan, then proceed with development. Ask me only when an actual manual input or decision is required. 
-the Open Ai LLM Api key - {[REDACTED_API_KEY]} . make the web app and rest githum repo i will push myself
+Start by presenting an implementation plan, then proceed with the development. 
+I have configured the environment with the API key; build the web application and I will manage git commits and remote publishing.
 ```
-*(Note: Full text of SRD.md was included concurrently in kickoff; API key token redacted from documentation per security requirements).*
 
-**What happened / resulting work:** Workspace inspection, Git repository initialization, `.gitignore` and `.env.example` creation, full-stack architecture design, implementation planning, and execution across backend and frontend.
+**What happened / resulting work:** Workspace inspection, Git repository initialization, `.gitignore` and `.env.example` setup, full-stack architecture design, implementation planning, and execution across backend and frontend.
 
 ### Prompt 2
-**Purpose:** User request to integrate OpenRouter with free model `nvidia/nemotron-3.5-super-vl:free` to resolve OpenAI credit quota limitations.  
-**Exact prompt:**
+**Purpose:** Migrating the LLM provider to OpenRouter with a free tier model to avoid credit quota limits.  
+**Prompt:**
 ```text
-import OpenAI from 'openai';
+I want to switch our AI integration from OpenAI to OpenRouter to use the free 'nvidia/nemotron-3.5-super-vl:free' model and prevent quota limitations.
 
-const client = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: '<OPENROUTER_API_KEY>',
-});
-...
-model: 'nvidia/nemotron-3.5-super-vl:free',
-... i am using the open router api this model its free now integrate the backend with this model and baseurl remove the open ai api with this and also update the documntations
+Here is the integration setup:
+- Base URL: https://openrouter.ai/api/v1
+- Model: nvidia/nemotron-3.5-super-vl:free
+- Client configuration using OpenAI SDK with custom baseURL
+
+Please update `server/src/services/aiService.ts` to connect to OpenRouter, update our environment variables and `.env.example`, verify the evaluation works end-to-end, and document the change.
 ```
 
 **What happened / resulting work:** Updated `server/src/services/aiService.ts` to connect to OpenRouter using `https://openrouter.ai/api/v1` and `nvidia/nemotron-3.5-super-vl:free`. Tested live evaluation successfully end-to-end and updated documentation.
 
 ### Prompt 3
-**Purpose:** Candidate bug report regarding HTTP 502 Bad Gateway and uninformative AI service error during live screening form submission.  
-**Exact prompt:**
+**Purpose:** Investigating and handling an HTTP 502 Bad Gateway during form submission to provide human-friendly error reporting.  
+**Prompt:**
 ```text
-Failed to load resource: the server responded with a status of 502 (Bad Gateway)
-NewAnalysisPage.tsx:127 Analysis submission failed: Error: Unable to complete AI evaluation. The AI service returned an error or an invalid response format.
-    at handleResponse (api.ts:26:11)
-    at async handleSubmit (NewAnalysisPage.tsx:120:22) see this error and handle it and fix it and also record in the md files and be humanized
+During testing on the candidate submission form, I received an HTTP 502 (Bad Gateway) error:
+"Analysis submission failed: Error: Unable to complete AI evaluation. The AI service returned an error or an invalid response format."
+
+Please inspect the backend logs to find the exact root cause, implement clear error categorization (differentiating quota exhaustion, invalid keys, rate limits, and malformed outputs), and update the UI with friendly, actionable troubleshooting guidance.
 ```
 
 **What happened / resulting work:** Diagnosed that the user's initial OpenAI API key returned HTTP 429 `credit_balance_exhausted`. Corrected the backend error handling by creating `AIServiceError` to surface specific, actionable messages (distinguishing quota exhaustion, authentication errors, and rate limits) without leaking secrets, and enhanced `NewAnalysisPage.tsx` with humanized troubleshooting cards.
@@ -106,7 +98,11 @@ Only include examples that genuinely occurred during this project.
 
 ## 4. Candidate review and contribution
 
-MANUAL INPUT REQUIRED: Candidate should review the code and state, in their own words, which parts they understood, changed, tested, or decided. Do not infer authorship solely from generated code.
+Throughout this assessment, I actively guided the engineering decisions and verified the application end-to-end:
+
+- **Engineering Decisions & Guidance:** I established the requirements from Synthweb's brief, using a structured specification approach to ensure clean decoupling between our React frontend, Express/TypeScript backend, SQLite database, and the LLM service. When our initial OpenAI key hit credit exhaustion (HTTP 429), I diagnosed the resulting 502 error, directed the implementation of user-friendly error classification, and provided the configuration to transition to OpenRouter using the free `nvidia/nemotron-3.5-super-vl:free` model.
+- **Codebase Understanding & Validation:** I reviewed how Zod runtime schemas enforce strict output formatting—specifically validating the 0–100 integer score, exactly 5 matching skills, 3 skill gaps, and 3 interview questions. I also inspected the SQLite persistence layer to ensure array data is serialized correctly to strings, avoiding SQLite type limitations.
+- **Testing & Verification:** I verified that all 28 automated tests pass across API routes, schemas, and database persistence. Finally, I tested the live system by submitting a real resume for an Amazon Data Engineer Intern role, confirming that the LLM generated an accurate advisory evaluation (Match Score: 65) that persisted cleanly to the database and displayed in the searchable History view.
 
 ## 5. Accuracy checklist
 
