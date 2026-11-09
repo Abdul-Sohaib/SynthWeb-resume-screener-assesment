@@ -28,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Internal HR Evaluation Tool</span>
                 <span className="inline-block w-1 h-1 rounded-full bg-slate-300"></span>
                 <span className="text-indigo-600 font-semibold flex items-center gap-0.5">
-                  <Sparkles className="w-3 h-3 inline" /> AI Powered
+                  <Sparkles className="w-3 h-3 inline" /> OpenRouter: Nemotron 3.5
                 </span>
               </p>
             </div>
@@ -78,4 +78,3 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
-

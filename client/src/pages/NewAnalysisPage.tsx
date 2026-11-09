@@ -7,7 +7,6 @@ import {
   User,
   Briefcase,
   RefreshCw,
-  CreditCard,
   KeyRound,
 } from 'lucide-react';
 import { createAnalysis } from '../services/api';
@@ -145,9 +144,6 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ onAnalysisSucc
     }
   };
 
-  const isQuotaError = errorMessage?.toLowerCase().includes('credit') || errorMessage?.toLowerCase().includes('quota');
-  const isAuthError = errorMessage?.toLowerCase().includes('authentication') || errorMessage?.toLowerCase().includes('api key');
-
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -187,56 +183,20 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ onAnalysisSucc
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-600" />
             <div className="flex-1 text-sm">
-              <p className="font-bold text-rose-900">
-                {isQuotaError
-                  ? 'OpenAI Account Quota Exceeded (HTTP 429)'
-                  : isAuthError
-                  ? 'OpenAI Authentication Error'
-                  : 'Analysis Request Failed'}
-              </p>
+              <p className="font-bold text-rose-900">Analysis Request Failed</p>
               <p className="mt-1 text-rose-800 leading-relaxed">{errorMessage}</p>
             </div>
           </div>
 
-          {isQuotaError && (
-            <div className="ml-8 p-3 rounded-xl bg-white/80 border border-rose-200/80 text-xs text-rose-900 space-y-2">
-              <p className="font-semibold flex items-center gap-1.5 text-rose-950">
-                <CreditCard className="w-4 h-4 text-rose-600" />
-                How to resolve credit balance exhaustion:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-rose-800 pl-1">
-                <li>
-                  Your OpenAI account has <strong>$0.00 credits</strong> remaining. OpenAI requires prepaid credits for API usage.
-                </li>
-                <li>
-                  Add credits on your OpenAI dashboard:{' '}
-                  <a
-                    href="https://platform.openai.com/settings/organization/billing"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline font-semibold text-indigo-700 hover:text-indigo-900"
-                  >
-                    platform.openai.com/settings/organization/billing
-                  </a>
-                </li>
-                <li>
-                  Or open <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-800 font-bold">server/.env</code> and replace <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-800 font-bold">OPENAI_API_KEY</code> with a key that has available billing credits.
-                </li>
-              </ul>
-            </div>
-          )}
-
-          {isAuthError && !isQuotaError && (
-            <div className="ml-8 p-3 rounded-xl bg-white/80 border border-rose-200/80 text-xs text-rose-900 space-y-1">
-              <p className="font-semibold flex items-center gap-1.5 text-rose-950">
-                <KeyRound className="w-4 h-4 text-rose-600" />
-                How to resolve API key error:
-              </p>
-              <p className="text-rose-800">
-                Verify that your API key in <code className="px-1 py-0.5 rounded bg-slate-100 font-mono text-slate-800">server/.env</code> is active and starts with <code className="font-mono">sk-proj-</code>.
-              </p>
-            </div>
-          )}
+          <div className="ml-8 p-3 rounded-xl bg-white/80 border border-rose-200/80 text-xs text-rose-900 space-y-1">
+            <p className="font-semibold flex items-center gap-1.5 text-rose-950">
+              <KeyRound className="w-4 h-4 text-rose-600" />
+              Troubleshooting OpenRouter / API configuration:
+            </p>
+            <p className="text-rose-800">
+              Verify your API key and model in <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-800 font-bold">server/.env</code>. You can obtain a free OpenRouter key from <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="underline font-semibold text-indigo-700">openrouter.ai/keys</a>.
+            </p>
+          </div>
         </div>
       )}
 

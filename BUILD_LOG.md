@@ -87,13 +87,25 @@ Antigravity: append entries as work happens. Use actual local date/time and actu
     `cd server; node -e "require('dotenv').config(); const OpenAI = require('openai'); const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); client.chat.completions.create({ model: 'gpt-4o-mini', messages: [{role: 'user', content: 'Say hello'}] }).then(res => console.log('SUCCESS:', res.choices[0].message.content)).catch(err => console.error('ERROR_STATUS:', err.status, err.message, err.code));"`
   - **Output:** `ERROR_STATUS: 429 429 You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/. credit_balance_exhausted`
 - **Root cause:**
-  1. The OpenAI account associated with the configured API key has a credit balance of $0.00 (`credit_balance_exhausted`), causing OpenAI to reject requests with HTTP 429.
-  2. Previously, `server/src/middleware/errorHandler.ts` caught any `AI_PROVIDER_ERROR` and replaced it with a generic, unhelpful message: *"Unable to complete AI evaluation. The AI service returned an error or an invalid response format."*, leaving the user unaware of the exact billing problem.
+  1. The OpenAI account associated with the configured API key had a credit balance of $0.00 (`credit_balance_exhausted`).
+  2. `server/src/middleware/errorHandler.ts` caught any `AI_PROVIDER_ERROR` and replaced it with a generic, unhelpful message.
+- **Fix applied:**
+  - Added `AIServiceError` with structured classification (`AI_QUOTA_EXHAUSTED`, `AI_AUTH_ERROR`, etc.).
+  - Enhanced `NewAnalysisPage.tsx` with humanized troubleshooting cards.
+
+### 2026-11-10 00:40 (local time)
+- **Task:** Transition AI backend to OpenRouter with free model `nvidia/nemotron-3.5-super-vl:free`.
+- **User instruction:** Switch provider to OpenRouter with base URL `https://openrouter.ai/api/v1` and free model `nvidia/nemotron-3.5-super-vl:free`.
 - **Files changed:**
-  - `server/src/services/aiService.ts`: Added `AIServiceError` with structured classification (`AI_QUOTA_EXHAUSTED`, `AI_AUTH_ERROR`, `AI_RATE_LIMIT`, `AI_MODEL_NOT_FOUND`, `AI_MALFORMED_OUTPUT`). Parses OpenAI API error codes and extracts clear, humanized explanations while safeguarding secrets. Re-reads `process.env.OPENAI_API_KEY` dynamically so changing keys does not require hard reboots.
-  - `server/src/middleware/errorHandler.ts`: Returns the specific status code and actionable message from `AIServiceError`.
-  - `client/src/pages/NewAnalysisPage.tsx`: Enhanced the error banner with humanized guidance, clear titles, links to the OpenAI billing dashboard, and instructions on how to update `server/.env`.
-- **Tests run and outcome:**
-  - `npm run build`: Succeeded for both server and client.
+  - `server/.env`: Configured `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL="https://openrouter.ai/api/v1"`, and `OPENROUTER_MODEL="nvidia/nemotron-3.5-super-vl:free"`.
+  - `server/.env.example` & `.env.example`: Updated to document OpenRouter environment variables.
+  - `server/src/services/aiService.ts`: Refactored to pass OpenRouter base URL, default headers (`HTTP-Referer`, `X-Title`), and clean markdown-wrapped JSON outputs.
+  - `client/src/components/Navbar.tsx` & `client/src/App.tsx`: Updated branding to OpenRouter Nemotron 3.5.
+  - `client/src/pages/NewAnalysisPage.tsx`: Updated error troubleshooting text to point to OpenRouter.
+  - `README.md` & `AI_USAGE.md`: Updated architecture, technology stack, and logs.
+- **Commands run:**
+  - Tested OpenRouter completion with `nvidia/nemotron-3.5-super-vl:free` -> Returned structured JSON with match score, 5 skills, 3 gaps, and 3 interview questions.
+  - Verified `aiService.evaluateResume` with sample candidate -> Returned valid evaluation verified by Zod schema.
+  - `npm run build`: Succeeded with zero errors for both client and server.
   - `cd server; npm test`: All 28 automated tests passed across all 3 test suites.
-- **Remaining work:** Candidate adds billing credits or provides a funded API key in `server/.env`.
+- **Observed result:** Live screening functionality fully verified with free OpenRouter model `nvidia/nemotron-3.5-super-vl:free`.

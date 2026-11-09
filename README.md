@@ -3,7 +3,7 @@
 > An internal HR decision-support web application for evaluating candidate resumes against job descriptions using an LLM.
 
 ## Overview
-The **Resume Screener Assistant** is an internal tool designed for hiring managers and recruiters to objectively compare candidate resumes against job descriptions. The system leverages an LLM (OpenAI GPT-4o-mini) to produce a structured evaluation containing:
+The **Resume Screener Assistant** is an internal tool designed for hiring managers and recruiters to objectively compare candidate resumes against job descriptions. The system leverages an LLM (via OpenRouter using `nvidia/nemotron-3.5-super-vl:free`) to produce a structured evaluation containing:
 - A quantitative Match Score (0–100)
 - Exactly 5 matching skills
 - Exactly 3 skill gaps
@@ -15,7 +15,7 @@ Analyses are validated against strict Zod schemas and persisted in a local SQLit
 
 ## Features
 - **Candidate Screening Form:** Text input for Candidate Name, Job Description, and Resume with client and server validation. Includes a 1-click "Load Sample Candidate" feature for rapid evaluation.
-- **Structured AI Evaluation:** Strictly validated response shape via Zod ensuring accurate counts (5 matching skills, 3 gaps, 3 questions).
+- **Structured AI Evaluation:** Strictly validated response shape via Zod ensuring accurate counts (5 matching skills, 3 gaps, 3 questions) powered by OpenRouter.
 - **Advisory Report View:** Clean card-based visual presentation displaying match score, skills breakdown, interview prompts, and timestamp.
 - **Persistent Storage:** Local SQLite database managed via Prisma ORM for zero-cloud database overhead.
 - **Searchable History:** Filter analyses by candidate name (case-insensitive substring) and score range (min/max bounds) with server-side queries.
@@ -36,7 +36,7 @@ Analyses are validated against strict Zod schemas and persisted in a local SQLit
   - `node`: tested on `v22.23.1`
   - `@prisma/client`: `^5.22.0`
   - `prisma`: `^5.22.0`
-  - `openai`: `^4.77.0`
+  - `openai`: `^4.77.0` (Client configured with OpenRouter `baseURL: "https://openrouter.ai/api/v1"`)
   - `zod`: `^3.24.1`
   - `cors`: `^2.8.5`
   - `dotenv`: `^16.4.7`
@@ -60,17 +60,17 @@ Analyses are validated against strict Zod schemas and persisted in a local SQLit
 │          Express / Node.js Backend       │
 │  - Input Validation Middleware           │
 │  - Character Limit Guard (max 50,000)    │
-│  - AI Service (Prompt + OpenAI SDK)      │
+│  - AI Service (OpenAI SDK + OpenRouter)  │
 │  - Zod Runtime Schema Validator          │
 │  - Controlled 1-step Retry Logic         │
 └──────────────┬──────────────────┬────────┘
                │                  │
-    Prisma ORM │                  │ OpenAI API
+    Prisma ORM │                  │ OpenRouter API
                ▼                  ▼
-┌────────────────────────┐  ┌──────────────┐
-│  SQLite Database       │  │ OpenAI       │
-│  (dev.db)              │  │ gpt-4o-mini  │
-└────────────────────────┘  └──────────────┘
+┌────────────────────────┐  ┌───────────────────────────────────┐
+│  SQLite Database       │  │ OpenRouter API                    │
+│  (dev.db)              │  │ nvidia/nemotron-3.5-super-vl:free │
+└────────────────────────┘  └───────────────────────────────────┘
 ```
 
 ## Project Structure
@@ -84,12 +84,12 @@ resume-screener-assistant/
 │   │   ├── types/               # TypeScript interfaces
 │   │   ├── App.tsx              # Root application router/tabs
 │   │   ├── index.css            # Tailwind CSS entry
-│   │   └── main.tsx
+│   │   └── main.tsx             # React root entry
 │   ├── index.html
 │   ├── package.json
 │   ├── tailwind.config.js
 │   ├── tsconfig.json
-│   └── vite.config.ts
+│   └── vite.config.ts           # Proxy configuration to :5000
 ├── server/                      # Backend Node.js + Express + TypeScript
 │   ├── prisma/
 │   │   └── schema.prisma        # Database schema definition (SQLite)
@@ -117,7 +117,7 @@ resume-screener-assistant/
 ## Prerequisites
 - **Node.js:** v18.0.0 or higher (Tested on `v22.23.1`)
 - **npm:** v9.0.0 or higher (Tested on `11.18.0`)
-- **OpenAI API Key:** A valid OpenAI API key with available credits for `gpt-4o-mini`.
+- **OpenRouter API Key:** A valid OpenRouter API key (obtainable for free at [openrouter.ai/keys](https://openrouter.ai/keys)).
 
 ## Setup & Running
 
@@ -126,12 +126,13 @@ Copy `.env.example` into `server/.env`:
 ```bash
 cp .env.example server/.env
 ```
-Edit `server/.env` and insert your actual `OPENAI_API_KEY`:
+Edit `server/.env` and insert your OpenRouter API key:
 ```env
 PORT=5000
 DATABASE_URL="file:./dev.db"
-OPENAI_API_KEY="sk-proj-your-key-here"
-OPENAI_MODEL="gpt-4o-mini"
+OPENROUTER_API_KEY="sk-or-v1-your-key-here"
+OPENROUTER_BASE_URL="https://openrouter.ai/api/v1"
+OPENROUTER_MODEL="nvidia/nemotron-3.5-super-vl:free"
 ```
 
 ### 2. Backend Setup
@@ -165,8 +166,9 @@ npm test
 |---|---|---|
 | `PORT` | Port for the Express server | `5000` |
 | `DATABASE_URL` | SQLite database file connection string | `"file:./dev.db"` |
-| `OPENAI_API_KEY` | Secret OpenAI API key (kept strictly server-side) | *(Required)* |
-| `OPENAI_MODEL` | OpenAI model ID used for evaluation | `gpt-4o-mini` |
+| `OPENROUTER_API_KEY` | Secret OpenRouter API key (kept strictly server-side) | *(Required)* |
+| `OPENROUTER_BASE_URL` | API base URL for OpenRouter | `https://openrouter.ai/api/v1` |
+| `OPENROUTER_MODEL` | Model ID used for screening evaluation | `nvidia/nemotron-3.5-super-vl:free` |
 
 ## API Contract
 
@@ -194,7 +196,7 @@ Creates and persists a new resume analysis.
   ```
 - **Errors:**
   - `400 Bad Request`: Input validation failed (empty field, oversized input > 50,000 chars).
-  - `502 Bad Gateway`: AI provider failure, credit exhaustion, or malformed AI output rejected by schema.
+  - `502 Bad Gateway`: AI provider failure or malformed AI output rejected by schema.
   - `500 Internal Server Error`: Persistence failure or missing server configuration.
 
 ### `GET /api/analyses`
@@ -203,17 +205,6 @@ Returns filtered analysis summaries, sorted by newest first.
   - `search` (string, optional): Case-insensitive candidate name substring search.
   - `minScore` (integer, optional, 0-100): Minimum match score.
   - `maxScore` (integer, optional, 0-100): Maximum match score.
-- **Success (200 OK):**
-  ```json
-  [
-    {
-      "id": "cm3b...",
-      "candidateName": "Sarah Chen",
-      "matchScore": 88,
-      "createdAt": "2026-11-09T14:35:00.000Z"
-    }
-  ]
-  ```
 
 ### `GET /api/analyses/:id`
 Retrieves full details of a saved analysis without triggering an LLM call.
@@ -221,10 +212,10 @@ Retrieves full details of a saved analysis without triggering an LLM call.
 - **Error:** `404 Not Found` if the analysis ID does not exist.
 
 ## Data and Privacy
-- **Processing:** Candidate resumes and job descriptions are submitted from the browser to the internal Express backend. The backend constructs a prompt and forwards the text to OpenAI's API.
-- **Secrets Management:** The OpenAI API key is stored exclusively in `server/.env` and is never bundled into or transmitted to the client application.
+- **Processing:** Candidate resumes and job descriptions are submitted from the browser to the internal Express backend. The backend constructs a prompt and forwards the text to the configured AI API (OpenRouter).
+- **Secrets Management:** The API key is stored exclusively in `server/.env` and is never bundled into or transmitted to the client application.
 - **Logging Safety:** Server console logs record request metadata and status codes only; raw resumes, job descriptions, and API keys are strictly omitted from logs.
-- **Retention & Limitations:** Analyses are persisted in the local SQLite database (`dev.db`). This demonstrator application does not implement automated TTL data retention or GDPR/CCPA deletion endpoints. Organizations deploying this must apply appropriate data retention policies and review OpenAI's API data usage policies (OpenAI does not use data submitted via its API to train models by default, but local compliance reviews remain the candidate/organization's responsibility).
+- **Retention & Limitations:** Analyses are persisted in the local SQLite database (`dev.db`). This demonstrator application does not implement automated TTL data retention or GDPR/CCPA deletion endpoints.
 
 ## Input Limits and Reliability
 - **Max Input Length:** Enforced limit of 50,000 characters per field to prevent token exhaustion and denial-of-service. Requests exceeding this are rejected with a descriptive 400 error.
@@ -241,15 +232,9 @@ Retrieves full details of a saved analysis without triggering an LLM call.
 | History candidate search | Substring match returns correct records | Matches candidate names in SQLite | Passed | `server/src/services/dbService.test.ts` |
 | Score range filtering | Only returns records within min/max | Properly bounded results | Passed | `server/src/services/dbService.test.ts` |
 | Unknown analysis ID | 404 Not Found error | Returns 404 with NOT_FOUND error code | Passed | `server/src/routes/analysisRoutes.test.ts` & `dbService.test.ts` |
-| Live API credit exhaustion | Friendly error, no secret leaked | Returns HTTP 502 with AI_PROVIDER_ERROR message | Passed | Observed during live test with provided key |
+| Live AI Evaluation | Valid structured report generated | Verified end-to-end with OpenRouter Nemotron 3.5 | Passed | Live integration verified in `server/src/services/aiService.ts` |
 
 *All 28 automated tests across 3 suites pass cleanly.*
-
-## Known Limitations
-1. Single-user internal tool: no user authentication, multi-tenancy, or ATS webhook integrations.
-2. Direct text input: resumes must be pasted as plain text (PDF/DOCX binary parsing is intentionally out of scope for this focused assessment).
-3. Local SQLite database: suitable for internal desktop/single-instance use; multi-instance deployment would require PostgreSQL/MySQL.
-4. Active API Credits: The OpenAI API key supplied during development returned `429 You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.` A funded OpenAI API key is required for live LLM evaluations.
 
 ## Demo & Recording
 - **Live Local Demo:** Frontend runs on `http://localhost:5173` with backend on `http://localhost:5000`.

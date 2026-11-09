@@ -37,23 +37,50 @@ You must respond with ONLY a valid JSON object matching this schema:
 
 export class AIService {
   private client: OpenAI | null = null;
-  private model: string;
+  private currentApiKey: string | null = null;
+  private currentBaseUrl: string | null = null;
 
-  constructor() {
-    this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  private getModel(): string {
+    return (
+      process.env.OPENROUTER_MODEL ||
+      process.env.OPENAI_MODEL ||
+      'nvidia/nemotron-3.5-super-vl:free'
+    );
+  }
+
+  private getBaseUrl(): string {
+    return (
+      process.env.OPENROUTER_BASE_URL ||
+      process.env.OPENAI_BASE_URL ||
+      'https://openrouter.ai/api/v1'
+    );
   }
 
   private getClient(): OpenAI {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey || apiKey === 'your-openai-api-key-here' || apiKey.trim() === '') {
+    const apiKey = (process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+    const baseURL = this.getBaseUrl();
+
+    if (!apiKey || apiKey === 'your-openrouter-api-key-here' || apiKey === 'your-openai-api-key-here') {
       throw new AIServiceError(
-        'OpenAI API key is missing. Please add your OPENAI_API_KEY in server/.env.',
+        'AI API key is missing. Please set OPENROUTER_API_KEY in server/.env.',
         500,
         'CONFIG_ERROR'
       );
     }
-    // Re-instantiate if key changed or not yet initialized
-    this.client = new OpenAI({ apiKey: apiKey.trim() });
+
+    if (!this.client || this.currentApiKey !== apiKey || this.currentBaseUrl !== baseURL) {
+      this.client = new OpenAI({
+        apiKey,
+        baseURL,
+        defaultHeaders: {
+          'HTTP-Referer': 'http://localhost:5173',
+          'X-Title': 'Resume Screener Assistant',
+        },
+      });
+      this.currentApiKey = apiKey;
+      this.currentBaseUrl = baseURL;
+    }
+
     return this.client;
   }
 
@@ -63,6 +90,7 @@ export class AIService {
     resume: string
   ): Promise<AIEvaluation> {
     const client = this.getClient();
+    const model = this.getModel();
 
     const userPrompt = `Please evaluate the following candidate against the job description:
 
@@ -82,7 +110,7 @@ ${resume}
 Return the assessment as a valid JSON object strictly complying with the schema.`;
 
     // Attempt 1
-    const firstAttempt = await this.callOpenAI(client, [
+    const firstAttempt = await this.callAI(client, model, [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
     ]);
@@ -103,7 +131,7 @@ Please strictly ensure:
 
 Please re-generate the JSON object:`;
 
-    const retryAttempt = await this.callOpenAI(client, [
+    const retryAttempt = await this.callAI(client, model, [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
       { role: 'assistant', content: firstAttempt },
@@ -122,21 +150,22 @@ Please re-generate the JSON object:`;
     );
   }
 
-  private async callOpenAI(
+  private async callAI(
     client: OpenAI,
+    model: string,
     messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
   ): Promise<string> {
     try {
       const response = await client.chat.completions.create({
-        model: this.model,
+        model,
         messages,
         response_format: { type: 'json_object' },
-        temperature: 0.2, // Low temperature for high consistency and schema adherence
+        temperature: 0.2,
       });
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new AIServiceError('No response content returned by OpenAI.', 502, 'AI_EMPTY_RESPONSE');
+        throw new AIServiceError('No response content returned by the AI provider.', 502, 'AI_EMPTY_RESPONSE');
       }
       return content;
     } catch (err: unknown) {
@@ -145,17 +174,16 @@ Please re-generate the JSON object:`;
       }
 
       if (err instanceof OpenAI.APIError) {
-        // Detailed, humanized error classification without leaking secrets
         if (err.status === 429) {
-          if (err.code === 'credit_balance_exhausted' || err.message?.toLowerCase().includes('credit')) {
+          if (err.message?.toLowerCase().includes('credit') || (err.code as string) === 'credit_balance_exhausted') {
             throw new AIServiceError(
-              'Your OpenAI account has no credits remaining (429 Quota Exceeded). Please add billing credits at https://platform.openai.com/settings/organization/billing or provide an active funded API key in server/.env.',
+              'Your OpenRouter account has no credits remaining. Please check your credit balance at https://openrouter.ai/settings/credits or use a free tier model.',
               502,
               'AI_QUOTA_EXHAUSTED'
             );
           }
           throw new AIServiceError(
-            'OpenAI rate limit exceeded (requests or tokens per minute). Please wait a few seconds and try again.',
+            'OpenRouter rate limit reached. Please wait a few seconds and try again.',
             429,
             'AI_RATE_LIMIT'
           );
@@ -163,7 +191,7 @@ Please re-generate the JSON object:`;
 
         if (err.status === 401) {
           throw new AIServiceError(
-            'OpenAI authentication failed: The API key provided in server/.env is invalid, unauthorized, or expired.',
+            'OpenRouter authentication failed: The API key provided in server/.env is invalid or expired. Check your key at https://openrouter.ai/keys.',
             502,
             'AI_AUTH_ERROR'
           );
@@ -171,14 +199,14 @@ Please re-generate the JSON object:`;
 
         if (err.status === 404) {
           throw new AIServiceError(
-            `The requested model "${this.model}" was not found or is not accessible with this API key.`,
+            `The requested model "${model}" was not found or is no longer available on OpenRouter. Check available models at https://openrouter.ai/models.`,
             502,
             'AI_MODEL_NOT_FOUND'
           );
         }
 
         throw new AIServiceError(
-          `OpenAI API returned an error (${err.status}): ${err.message}`,
+          `OpenRouter API returned an error (${err.status}): ${err.message}`,
           502,
           'AI_PROVIDER_ERROR'
         );
@@ -202,7 +230,15 @@ Please re-generate the JSON object:`;
 
   private parseAndValidate(rawJson: string): { success: true; data: AIEvaluation } | { success: false; error: string } {
     try {
-      const parsed = JSON.parse(rawJson);
+      // Clean potential markdown fencing from model output
+      let cleaned = rawJson.trim();
+      if (cleaned.startsWith('```json')) {
+        cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      const parsed = JSON.parse(cleaned);
       const validation = aiEvaluationSchema.safeParse(parsed);
       if (validation.success) {
         return { success: true, data: validation.data };

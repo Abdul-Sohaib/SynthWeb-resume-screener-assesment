@@ -10,10 +10,9 @@ export function App() {
   const [currentReport, setCurrentReport] = useState<AnalysisDetail | null>(null);
 
   const handleAnalysisSuccess = (analysis: AnalysisResponse) => {
-    // When generated from the new analysis page, matchingSkills, skillGaps, interviewQuestions are present
     const fullDetail: AnalysisDetail = {
       ...analysis,
-      jobDescription: '', // Will be visible if fetched from history or kept in session
+      jobDescription: '',
       resume: '',
     };
     setCurrentReport(fullDetail);
@@ -57,7 +56,7 @@ export function App() {
       <footer className="border-t border-slate-200 py-6 bg-white text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Resume Screener Assistant &copy; {new Date().getFullYear()} — Internal HR Evaluation Tool</span>
-          <span className="text-slate-400">Decision-Support System • OpenAI GPT-4o-mini</span>
+          <span className="text-slate-400">Decision-Support System • OpenRouter Nemotron 3.5</span>
         </div>
       </footer>
     </div>
@@ -65,4 +64,3 @@ export function App() {
 }
 
 export default App;
-
