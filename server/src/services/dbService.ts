@@ -79,7 +79,7 @@ export class DBService {
         },
       });
 
-      return records.map((r) => ({
+      return records.map((r: { id: string; candidateName: string; matchScore: number; createdAt: Date }) => ({
         id: r.id,
         candidateName: r.candidateName,
         matchScore: r.matchScore,
