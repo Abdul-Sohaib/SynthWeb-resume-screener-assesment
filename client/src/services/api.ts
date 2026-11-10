@@ -6,7 +6,7 @@ import {
   ApiError,
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const API_BASE = 'https://synthweb-resume-screener-assesment.onrender.com/api';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
