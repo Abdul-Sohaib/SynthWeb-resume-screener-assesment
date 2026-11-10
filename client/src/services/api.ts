@@ -6,7 +6,7 @@ import {
   ApiError,
 } from '../types';
 
-const API_BASE = process.env.API_BASE || '/api';
+const API_BASE = import.meta.env.API_BASE || '/api';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
