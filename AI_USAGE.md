@@ -11,11 +11,11 @@
 
 ## 2. Three key prompts actually used
 
-Preserve the key prompts that guided project development, refined for clarity and professional readability.
+> **Note on Prompt Provenance:** The three prompts below represent edited summaries reconstructed from actual project milestones and task requests for clarity, context, and readability.
 
 ### Prompt 1
 **Purpose:** Project kickoff establishing the technical specification, development principles, and project bounds.  
-**Prompt:**
+**Prompt Summary:**
 ```text
 Please read `SRD.md` completely as the primary specification for this project and build the Resume Screener Assistant.
 
@@ -35,7 +35,7 @@ I have configured the environment with the API key; build the web application an
 
 ### Prompt 2
 **Purpose:** Migrating the LLM provider to OpenRouter with a free tier model to avoid credit quota limits.  
-**Prompt:**
+**Prompt Summary:**
 ```text
 I want to switch our AI integration from OpenAI to OpenRouter to use the free 'nvidia/nemotron-3.5-super-vl:free' model and prevent quota limitations.
 
@@ -51,7 +51,7 @@ Please update `server/src/services/aiService.ts` to connect to OpenRouter, updat
 
 ### Prompt 3
 **Purpose:** Investigating and handling an HTTP 502 Bad Gateway during form submission to provide human-friendly error reporting.  
-**Prompt:**
+**Prompt Summary:**
 ```text
 During testing on the candidate submission form, I received an HTTP 502 (Bad Gateway) error:
 "Analysis submission failed: Error: Unable to complete AI evaluation. The AI service returned an error or an invalid response format."

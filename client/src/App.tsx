@@ -9,11 +9,11 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'new' | 'history' | 'report'>('new');
   const [currentReport, setCurrentReport] = useState<AnalysisDetail | null>(null);
 
-  const handleAnalysisSuccess = (analysis: AnalysisResponse) => {
+  const handleAnalysisSuccess = (analysis: AnalysisDetail | AnalysisResponse) => {
     const fullDetail: AnalysisDetail = {
       ...analysis,
-      jobDescription: '',
-      resume: '',
+      jobDescription: 'jobDescription' in analysis ? analysis.jobDescription : '',
+      resume: 'resume' in analysis ? analysis.resume : '',
     };
     setCurrentReport(fullDetail);
     setActiveTab('report');

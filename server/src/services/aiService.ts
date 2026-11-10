@@ -73,7 +73,7 @@ export class AIService {
         apiKey,
         baseURL,
         defaultHeaders: {
-          'HTTP-Referer': 'https://synthweb-internal-resume-assesment.vercel.app',
+          'HTTP-Referer': process.env.APP_URL || 'http://localhost:5173',
           'X-Title': 'Resume Screener Assistant',
         },
       });
@@ -230,12 +230,19 @@ Please re-generate the JSON object:`;
 
   private parseAndValidate(rawJson: string): { success: true; data: AIEvaluation } | { success: false; error: string } {
     try {
-      // Clean potential markdown fencing from model output
       let cleaned = rawJson.trim();
-      if (cleaned.startsWith('```json')) {
-        cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+
+      // 1. Extract JSON from markdown code blocks if present anywhere
+      const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (codeBlockMatch && codeBlockMatch[1]) {
+        cleaned = codeBlockMatch[1].trim();
+      } else {
+        // 2. Extract substring between first '{' and last '}' to strip any surrounding commentary
+        const firstBrace = cleaned.indexOf('{');
+        const lastBrace = cleaned.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleaned = cleaned.substring(firstBrace, lastBrace + 1).trim();
+        }
       }
 
       const parsed = JSON.parse(cleaned);

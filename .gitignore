@@ -29,6 +29,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Deployments and third-party tooling
+.vercel/
+
 # Editor and OS files
 .vscode/
 .idea/

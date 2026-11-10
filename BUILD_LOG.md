@@ -94,3 +94,25 @@ A chronological engineering log documenting development milestones, architectura
   - Tested live analysis end-to-end with an Amazon Data Engineer Intern job description and candidate resume. Received a valid structured assessment (Match Score: 65, 5 skills, 3 gaps, 3 interview questions).
   - Verified persistence to SQLite and display in History.
   - Ran full test suite — all 28 tests passing.
+
+---
+
+### Nov 10, 2026 — 13:45 | Final Pre-Submission Audit & Robustness Hardening
+- **Milestone:** Comprehensive pre-submission audit against SynthWeb's 20 core requirements and optional bonuses.
+- **Audits & Findings:**
+  - Verified end-to-end flow from form submission to SQLite persistence and History retrieval.
+  - Identified that LLMs returning text commentary around markdown code blocks (` ```json ... ``` `) could throw a JSON syntax error in `aiService.ts`.
+  - Identified that immediate post-submission report viewing omitted `jobDescription` and `resume` in local React state (requiring users to click through History to see submitted texts).
+  - Identified missing `vite-env.d.ts` causing TypeScript error TS2339 when checking `import.meta.env.VITE_API_BASE`.
+  - Identified untracked `.vercel` build folders.
+- **Corrections Applied:**
+  - Hardened `parseAndValidate` in `server/src/services/aiService.ts` with regex code block and outer JSON brace extraction before schema validation.
+  - Updated `client/src/pages/NewAnalysisPage.tsx` and `client/src/App.tsx` to pass submitted inputs into active report state.
+  - Added `client/src/vite-env.d.ts` and configured fallback `API_BASE` (`import.meta.env.VITE_API_BASE || '/api'`).
+  - Added `.vercel/` to root `.gitignore`.
+- **Verification:**
+  - Ran backend test suite (`npm --prefix server test`): all 28 tests across 3 suites passing.
+  - Ran server build (`npm --prefix server run build`): compiled cleanly with zero errors.
+  - Ran client build (`npm --prefix client run build`): Vite build completed cleanly in 5.2s.
+  - Verified Prisma schema validation (`npx prisma validate`): valid.
+  - Verified local database (`server/prisma/dev.db`): 28 records preserved, not tracked by Git.

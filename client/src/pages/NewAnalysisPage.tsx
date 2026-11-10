@@ -10,10 +10,10 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { createAnalysis } from '../services/api';
-import { AnalysisResponse } from '../types';
+import { AnalysisResponse, AnalysisDetail } from '../types';
 
 interface NewAnalysisPageProps {
-  onAnalysisSuccess: (analysis: AnalysisResponse) => void;
+  onAnalysisSuccess: (analysis: AnalysisDetail | AnalysisResponse) => void;
 }
 
 const SAMPLE_JOB_DESCRIPTION = `Senior Full Stack Engineer (React & Node.js)
@@ -131,7 +131,11 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ onAnalysisSucc
         jobDescription: jobDescription.trim(),
         resume: resume.trim(),
       });
-      onAnalysisSuccess(result);
+      onAnalysisSuccess({
+        ...result,
+        jobDescription: jobDescription.trim(),
+        resume: resume.trim(),
+      });
     } catch (err: unknown) {
       console.error('Analysis submission failed:', err);
       setErrorMessage(
